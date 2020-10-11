@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Locative Media</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css" rel="stylesheet" />
+</head>
+<body>
+
+	<style>
+		body { margin: 0; padding: 0; }
+		#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+		/*hiding mapbox icon(bottom-left)*/
+		a.mapboxgl-ctrl-logo{
+			display: none;
+		}
+
+		/*hide mapbox icon and description(bottom-right)*/
+		div.mapboxgl-ctrl-attrib-inner{
+		 display: none;
+		}
+		/*making distance between popup and circles on map*/
+  	.mapboxgl-popup{
+			padding: 30px;
+		}
+		/*set direction of popup content right to left*/
+  	.mapboxgl-popup-content {
+ 			direction: rtl;
+			width: 300px;
+		 	text-align: center;
+		}
+		/*hiding popup close button*/
+		.mapboxgl-popup-close-button{
+		visibility: hidden;
+
+		}
+		/*markers are rouded divs that contain icons on the map*/
+		.marker {
+		display: block;
+		border: none;
+		border-radius: 50%;
+		cursor: pointer;
+		padding: 0;
+		z-index: 1;
+		}
+	</style>
+
+<div id="map"></div>
+<script>
+//access mapbox using access token
+mapboxgl.accessToken = 'pk.eyJ1IjoicGJpemVoIiwiYSI6ImNqNnA1eTcyYzBxYmUyd3BrNjkwOWg4d2sifQ.YJDQpV4dgfwfsFVrEqkHJw';
+//set direction of mapbox text content right to left
+mapboxgl.setRTLTextPlugin('https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js');
+var map = new mapboxgl.Map({
+container: 'map', // container id
+style: 'mapbox://styles/mapbox/streets-v11',
+center: [51.343033,35.725614], // starting position
+zoom: 15 // starting zoom
+});
+
+
+var geojson={'type': 'FeatureCollection',
+'features': [
+{
+'type': 'Feature',
+'properties': {
+'imgURL': 'b1.jpg',//point icon
+'message': //html that will appear in the popup when user is close enough
+'<strong>سلام!</strong><p><a href="http://www.futurecity.ir/" target="_blank" title="Opens in a new window">نقطه اول</a>...</p><audio controls><source src="A1.ogg" type="audio/ogg"><source src="A1.mp3" type="audio/mpeg"></audio> ',
+'iconSize': [60, 60]
+},
+'geometry': {
+'type': 'Point',
+'coordinates': [51.3455153,35.725040]
+}
+},
+{
+'type': 'Feature',
+'properties': {
+'imgURL': 'b2.jpg',//point icon
+'message': //html that will appear in the popup when user is close enough
+'<strong>سلام!</strong><p><a href="http://www.futurecity.ir/" target="_blank" title="Opens in a new window">نقطه دوم</a>...</p><audio controls><source src="A1.ogg" type="audio/ogg"><source src="A1.mp3" type="audio/mpeg"></audio>',
+'iconSize': [50, 50]
+},
+'geometry': {
+'type': 'Point',//point icon
+'coordinates':[51.342720,35.725804]
+}
+},
+{
+'type': 'Feature',
+'properties': {
+'imgURL': 'b3.jpg',
+'message': //html that will appear in the popup when user is close enough
+'<strong>سلام!</strong><p><a href="http://www.futurecity.ir/" target="_blank" title="Opens in a new window">نقطه سوم</a>...</p><audio controls><source src="A1.ogg" type="audio/ogg"><source src="A1.mp3" type="audio/mpeg"></audio>',
+'iconSize': [40, 40]
+},
+'geometry': {
+'type': 'Point',
+'coordinates': [51.343933,35.725680]
+}
+}
+]};
+// add markers to map
+geojson.features.forEach(function (marker) {
+// create a DOM div element for every marker
+var el = document.createElement('div');
+//add class marker to divs
+el.className = 'marker';
+//use image urls from geojson as background images for markers(divs)
+el.style.backgroundImage ="url("+marker.properties.imgURL+")";
+//add icon size from geojson
+el.style.width = marker.properties.iconSize[0] + 'px';
+el.style.height = marker.properties.iconSize[1] + 'px';
+
+// add marker to map
+new mapboxgl.Marker(el)
+.setLngLat(marker.geometry.coordinates)
+.addTo(map);
+});
+
+
+//load geojson as a layer of points
+map.on('load', function () {
+map.addSource('places', {
+'type': 'geojson',
+'data': {
+	'type': 'FeatureCollection',
+	'features':geojson.features
+}
+});
+// Add points layer to the map
+map.addLayer({
+'id': 'places',
+'type': 'circle',
+'source': 'places',
+'paint':{
+	'circle-radius':25,
+	'circle-opacity':0,
+}
+});
+
+
+//measuring distance between two coordinates
+function getDistanceFromLatLonInKm(main_lat, main_lon, lat, lon) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat-main_lat);  // deg2rad below
+  var dLon = deg2rad(lon-main_lon);
+  var a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(main_lat)) * Math.cos(deg2rad(lat)) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+    ;
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  var d = R * c; // Distance in km
+  return d;
+}
+function deg2rad(deg) {
+  return deg * (Math.PI/180)
+}
+//thia variables will save user location long and lat
+var lon =0;
+var lat = 0;
+
+//creat a popup
+var popup=new mapboxgl.Popup
+//this information will appear in popup when user clicks on a point which is not close enough.
+var Error_popup='<strong>هنوز به اندازه کافی نزدیک نشده‌اید!</strong><p>';
+var description='';
+//this variable stores coordinate of clicked point.
+var coordinates = [0, 0];
+// When a click event occurs on a feature in the places layer, open a popup at the
+// location of the feature, with description HTML .
+map.on('click', 'places', function (e) {
+coordinates = e.features[0].geometry.coordinates.slice();
+description = e.features[0].properties.message;
+//mainlon and mmain-lat store clicked point longitude and latitude
+main_lon=coordinates[0]
+main_lat=coordinates[1]
+
+//if user is within 0.1km from clicked point popup content changes into the point information
+if(getDistanceFromLatLonInKm(main_lat, main_lon, lat, lon)<0.1){
+		popup.on()
+		.setLngLat(coordinates)
+		.setHTML(description)
+		.addTo(map);
+	}
+	//if user is not close enough to the clicked point popup tells user he is not close enough.
+else{
+popup.on()
+.setLngLat(coordinates)
+.setHTML(Error_popup)
+.addTo(map);}
+
+});
+
+// Change the cursor to a pointer when the mouse is over the places layer.
+map.on('mouseenter', 'places', function () {
+map.getCanvas().style.cursor = 'pointer';
+});
+
+// Change it back to a pointer when it leaves.
+map.on('mouseleave', 'places', function () {
+map.getCanvas().style.cursor = '';
+});
+
+// Add geolocate control to the map.
+var geolocate = new mapboxgl.GeolocateControl({
+positionOptions: {
+//live location
+enableHighAccuracy: true,
+maximumAge:Infinity,
+},
+trackUserLocation: true,
+showAccuracyCircle:false,
+fitBoundsOptions:{
+	maxZoom:30,
+}
+});
+
+map.addControl(geolocate);
+//when location control button is clicked:
+geolocate.on('geolocate', function(e) {
+	//save user current location long and lat in these two variables
+      lon = e.coords.longitude;
+      lat = e.coords.latitude;
+			//map.setZoom(20);
+});
+});
+
+</script>
+
+</body>
+</html>
